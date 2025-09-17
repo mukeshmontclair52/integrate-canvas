@@ -32,19 +32,24 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
       };
 
       if (node.type === "test") {
+        const config = node.config || {};
         stage.spec = {
           execution: {
             steps: [
               {
                 step: {
-                  type: node.config?.testType || "Http",
+                  type: config.testType || "Http",
                   name: node.label,
                   identifier: `${node.id}_step`,
-                  timeout: `${node.config?.timeout || 30}s`,
+                  timeout: `${config.timeout || 30}s`,
                   spec: {
-                    method: "GET",
-                    url: "https://api.example.com/test",
-                    assertion: node.config?.condition || "response.status == 200",
+                    method: config.method || "GET",
+                    url: config.endpoint || "https://api.example.com/endpoint",
+                    ...(config.headers && { headers: JSON.parse(config.headers) }),
+                    ...(config.body && { requestBody: config.body }),
+                    assertion: config.expectedStatus 
+                      ? `response.status == ${config.expectedStatus}` 
+                      : "response.status == 200",
                   },
                 },
               },
@@ -52,9 +57,10 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
           },
         };
       } else if (node.type === "condition") {
+        const config = node.config || {};
         stage.when = {
           pipelineStatus: "Success",
-          condition: node.config?.condition || "<+pipeline.variables.test_result> == 'pass'",
+          condition: config.condition || "<+pipeline.variables.test_result> == 'pass'",
         };
         stage.spec = {
           execution: {
@@ -62,14 +68,17 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
               {
                 step: {
                   type: "ShellScript",
-                  name: "Conditional Check",
+                  name: config.description || "Conditional Check",
                   identifier: `${node.id}_condition`,
                   spec: {
                     shell: "Bash",
                     source: {
                       type: "Inline",
                       spec: {
-                        script: `echo "Condition met: ${node.config?.condition}"`,
+                        script: `# ${config.description || 'Condition check'}
+echo "Checking: ${config.condition || 'No condition specified'}"
+# On success: ${config.onTrue || 'continue'}  
+# On failure: ${config.onFalse || 'fail'}`,
                       },
                     },
                   },
@@ -83,8 +92,8 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
       pipeline.spec.stages.push(stage);
     });
 
-    // Add pipeline variables
-    pipeline.spec.variables = [
+    // Add pipeline variables based on node configurations
+    const variables: any[] = [
       {
         name: "test_environment",
         type: "String",
@@ -97,33 +106,50 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
       },
     ];
 
+    // Add custom variables from node configurations
+    nodes.forEach(node => {
+      if (node.config) {
+        Object.entries(node.config).forEach(([key, value]) => {
+          if (typeof value === 'string' && value.length > 0 && !['testType', 'timeout'].includes(key)) {
+            variables.push({
+              name: `${node.id}_${key}`,
+              type: "String",
+              value: String(value)
+            });
+          }
+        });
+      }
+    });
+
+    pipeline.spec.variables = variables;
     return pipeline;
   };
 
-  const yamlString = JSON.stringify(generateYaml(), null, 2)
-    .replace(/"/g, "")
-    .replace(/,/g, "")
-    .replace(/{/g, "")
-    .replace(/}/g, "")
-    .replace(/\[/g, "")
-    .replace(/\]/g, "")
-    .split("\n")
-    .map(line => {
-      const trimmed = line.trim();
-      if (!trimmed) return "";
-      
-      const indentLevel = (line.length - line.trimStart().length) / 2;
-      const indent = "  ".repeat(indentLevel);
-      
-      if (trimmed.includes(":") && !trimmed.startsWith("-")) {
-        const [key, ...valueParts] = trimmed.split(":");
-        const value = valueParts.join(":").trim();
-        return `${indent}${key}:${value ? ` ${value}` : ""}`;
+  const generateYamlString = (obj: any, indent = 0): string => {
+    const spaces = "  ".repeat(indent);
+    let result = "";
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (Array.isArray(value)) {
+        result += `${spaces}${key}:\n`;
+        value.forEach((item: any) => {
+          if (typeof item === "object") {
+            result += `${spaces}- ${generateYamlString(item, indent + 1).trim()}\n`;
+          } else {
+            result += `${spaces}- ${item}\n`;
+          }
+        });
+      } else if (typeof value === "object" && value !== null) {
+        result += `${spaces}${key}:\n${generateYamlString(value, indent + 1)}`;
+      } else {
+        result += `${spaces}${key}: ${value}\n`;
       }
-      
-      return `${indent}${trimmed}`;
-    })
-    .join("\n");
+    }
+
+    return result;
+  };
+
+  const yamlContent = generateYamlString(generateYaml());
 
   return (
     <div className="flex-1 bg-card p-6 font-mono text-sm">
@@ -134,52 +160,8 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
         </p>
       </div>
       
-      <pre className="text-foreground whitespace-pre-wrap overflow-auto h-full">
-        <code>{`apiVersion: v1
-kind: Pipeline  
-metadata:
-  name: integration-test-pipeline
-  description: Auto-generated integration test pipeline
-spec:
-  stages:${nodes.filter(node => node.type !== "start" && node.type !== "end").sort((a, b) => a.x - b.x).map((node, index) => `
-    - name: ${node.label.toLowerCase().replace(/\s+/g, "-")}
-      identifier: ${node.id}
-      type: ${node.type === "test" ? "Integration" : "Conditional"}${node.type === "test" ? `
-      spec:
-        execution:
-          steps:
-            - step:
-                type: ${node.config?.testType || "Http"}
-                name: ${node.label}
-                identifier: ${node.id}_step
-                timeout: ${node.config?.timeout || 30}s
-                spec:
-                  method: GET
-                  url: https://api.example.com/test
-                  assertion: ${node.config?.condition || "response.status == 200"}` : `
-      when:
-        pipelineStatus: Success
-        condition: ${node.config?.condition || "<+pipeline.variables.test_result> == 'pass'"}
-      spec:
-        execution:
-          steps:
-            - step:
-                type: ShellScript
-                name: Conditional Check
-                identifier: ${node.id}_condition
-                spec:
-                  shell: Bash
-                  source:
-                    type: Inline
-                    spec:
-                      script: echo "Condition met: ${node.config?.condition}"`}`).join("")}
-  variables:
-    - name: test_environment
-      type: String
-      value: development
-    - name: timeout_duration  
-      type: String
-      value: 300s`}</code>
+      <pre className="text-foreground whitespace-pre-wrap overflow-auto h-full bg-muted/10 p-4 rounded-lg border">
+        <code>{yamlContent}</code>
       </pre>
     </div>
   );

@@ -14,6 +14,14 @@ export interface FlowNodeData {
     condition?: string;
     action?: string;
     timeout?: number;
+    endpoint?: string;
+    method?: string;
+    headers?: string;
+    body?: string;
+    expectedStatus?: number;
+    description?: string;
+    onTrue?: string;
+    onFalse?: string;
   };
 }
 

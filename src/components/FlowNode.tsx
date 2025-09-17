@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Play, CheckCircle, Diamond, Square, Link, Edit3 } from "lucide-react";
+import { Play, CheckCircle, Diamond, Square, Link, Edit3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FlowNodeData } from "./FlowCanvas";
 import { Input } from "./ui/input";
+import { NodeConfigModal } from "./NodeConfigModal";
 
 interface FlowNodeProps {
   data: FlowNodeData;
@@ -155,16 +156,32 @@ export const FlowNode = ({
         ) : (
           <div className="flex items-center gap-1 flex-1">
             <span className="text-sm">{data.label}</span>
-            {isSelected && data.type !== "start" && data.type !== "end" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLabelEdit();
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded"
-              >
-                <Edit3 className="h-3 w-3" />
-              </button>
+            {isSelected && (
+              <div className="flex gap-1">
+                {data.type !== "start" && data.type !== "end" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLabelEdit();
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </button>
+                )}
+                <NodeConfigModal
+                  node={data}
+                  onUpdateNode={onUpdateNode}
+                  trigger={
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded"
+                    >
+                      <Settings className="h-3 w-3" />
+                    </button>
+                  }
+                />
+              </div>
             )}
           </div>
         )}
