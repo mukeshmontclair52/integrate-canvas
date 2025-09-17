@@ -57,6 +57,20 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Custom colors for integration testing app
+        "sidebar-bg": "hsl(var(--sidebar-bg))",
+        "sidebar-hover": "hsl(var(--sidebar-hover))",
+        "canvas-bg": "hsl(var(--canvas-bg))",
+        "node-start": "hsl(var(--node-start))",
+        "node-test": "hsl(var(--node-test))",
+        "node-condition": "hsl(var(--node-condition))",
+        "node-end": "hsl(var(--node-end))",
+        "connection-line": "hsl(var(--connection-line))",
+      },
+      backgroundImage: {
+        "gradient-primary": "var(--gradient-primary)",
+        "gradient-success": "var(--gradient-success)",
+        "gradient-node": "var(--gradient-node)",
       },
       borderRadius: {
         lg: "var(--radius)",
