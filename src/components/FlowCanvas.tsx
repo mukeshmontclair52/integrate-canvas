@@ -45,21 +45,56 @@ export const FlowCanvas = ({ onFlowChange }: FlowCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const addNode = (type: FlowNodeData["type"]) => {
+    // Find the rightmost node that's not the end node to position the new node
+    const nonEndNodes = nodes.filter(node => node.type !== "end");
+    const rightmostNode = nonEndNodes.reduce((rightmost, node) => 
+      node.x > rightmost.x ? node : rightmost, nonEndNodes[0]);
+    
     const newNode: FlowNodeData = {
       id: `${type}-${Date.now()}`,
       type,
       label: type === "test" ? "API Test" : type === "condition" ? "If Condition" : type,
-      x: 400 + Math.random() * 100,
-      y: 200 + Math.random() * 100,
+      x: rightmostNode.x + 200,
+      y: 200,
       config: {
         testType: type === "test" ? "api" : undefined,
         condition: type === "condition" ? "response.status === 200" : undefined,
         timeout: 30,
       },
     };
+
     const updatedNodes = [...nodes, newNode];
+    
+    // Find direct start-to-end connection and replace it with start->newNode->end
+    const directConnection = connections.find(conn => conn.from === "start" && conn.to === "end");
+    let updatedConnections = [...connections];
+    
+    if (directConnection) {
+      // Remove direct start-end connection
+      updatedConnections = connections.filter(conn => conn.id !== directConnection.id);
+      // Add start->newNode and newNode->end connections
+      updatedConnections.push(
+        { id: `start-${newNode.id}`, from: "start", to: newNode.id },
+        { id: `${newNode.id}-end`, from: newNode.id, to: "end" }
+      );
+    } else {
+      // Find the last node before end and connect newNode between it and end
+      const endConnections = connections.filter(conn => conn.to === "end");
+      if (endConnections.length > 0) {
+        const lastConnection = endConnections[0];
+        // Remove the connection to end
+        updatedConnections = connections.filter(conn => conn.id !== lastConnection.id);
+        // Add connections: lastNode->newNode->end
+        updatedConnections.push(
+          { id: `${lastConnection.from}-${newNode.id}`, from: lastConnection.from, to: newNode.id },
+          { id: `${newNode.id}-end`, from: newNode.id, to: "end" }
+        );
+      }
+    }
+    
     setNodes(updatedNodes);
-    onFlowChange?.(updatedNodes, connections);
+    setConnections(updatedConnections);
+    onFlowChange?.(updatedNodes, updatedConnections);
   };
 
   const updateNode = (id: string, updates: Partial<FlowNodeData>) => {
