@@ -2,7 +2,13 @@ import { Save, Play, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 
-export const TopBar = () => {
+interface TopBarProps {
+  viewMode: "visual" | "yaml";
+  onViewModeChange: (mode: "visual" | "yaml") => void;
+  hasUnsavedChanges?: boolean;
+}
+
+export const TopBar = ({ viewMode, onViewModeChange, hasUnsavedChanges = false }: TopBarProps) => {
   return (
     <div className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
       {/* Breadcrumb */}
@@ -20,18 +26,34 @@ export const TopBar = () => {
       <div className="flex items-center gap-4">
         {/* View Toggle */}
         <div className="flex bg-muted rounded-md p-1">
-          <button className="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded">
+          <button 
+            onClick={() => onViewModeChange("visual")}
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              viewMode === "visual" 
+                ? "bg-primary text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
             VISUAL
           </button>
-          <button className="px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+          <button 
+            onClick={() => onViewModeChange("yaml")}
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              viewMode === "yaml" 
+                ? "bg-primary text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
             YAML
           </button>
         </div>
 
         {/* Status */}
-        <Badge variant="secondary" className="text-orange-400 border-orange-400/30">
-          Unsaved changes
-        </Badge>
+        {hasUnsavedChanges && (
+          <Badge variant="secondary" className="text-orange-400 border-orange-400/30">
+            Unsaved changes
+          </Badge>
+        )}
 
         {/* Actions */}
         <div className="flex gap-2">
