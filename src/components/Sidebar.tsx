@@ -7,26 +7,30 @@ import {
   Shield, 
   BarChart3,
   Folder,
-  FileText
+  FileText,
+  Monitor
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation, Link } from "react-router-dom";
 
-const navigation = [
-  { name: "Overview", icon: Home, active: false },
-  { name: "Test Flows", icon: GitBranch, active: true },
-  { name: "Executions", icon: Play, active: false },
-  { name: "Test Data", icon: Database, active: false },
-  { name: "Environments", icon: Shield, active: false },
-  { name: "Reports", icon: BarChart3, active: false },
-];
+const Sidebar = () => {
+  const location = useLocation();
 
-const projectItems = [
-  { name: "API Tests", icon: FileText },
-  { name: "UI Tests", icon: FileText },
-  { name: "Integration", icon: FileText },
-];
+  const navigation = [
+    { name: "Overview", icon: Home, active: false, href: "/" },
+    { name: "Test Flows", icon: GitBranch, active: location.pathname === "/", href: "/" },
+    { name: "UI Tests", icon: Monitor, active: location.pathname === "/ui-tests", href: "/ui-tests" },
+    { name: "Executions", icon: Play, active: false, href: "#" },
+    { name: "Test Data", icon: Database, active: false, href: "#" },
+    { name: "Environments", icon: Shield, active: false, href: "#" },
+    { name: "Reports", icon: BarChart3, active: false, href: "#" },
+  ];
 
-export const Sidebar = () => {
+  const projectItems = [
+    { name: "API Tests", icon: FileText },
+    { name: "UI Tests", icon: FileText },
+    { name: "Integration", icon: FileText },
+  ];
   return (
     <div className="w-64 bg-sidebar-bg border-r border-border flex flex-col h-screen">
       {/* Project Header */}
@@ -43,9 +47,9 @@ export const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
         {navigation.map((item) => (
-          <a
+          <Link
             key={item.name}
-            href="#"
+            to={item.href}
             className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
               item.active
@@ -55,7 +59,7 @@ export const Sidebar = () => {
           >
             <item.icon className="h-4 w-4" />
             {item.name}
-          </a>
+          </Link>
         ))}
 
         {/* Project Section */}
@@ -89,3 +93,5 @@ export const Sidebar = () => {
     </div>
   );
 };
+
+export { Sidebar };
