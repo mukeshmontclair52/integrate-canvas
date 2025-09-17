@@ -45,7 +45,13 @@ export const YamlView = ({ nodes, connections }: YamlViewProps) => {
                   spec: {
                     method: config.method || "GET",
                     url: config.endpoint || "https://api.example.com/endpoint",
-                    ...(config.headers && { headers: JSON.parse(config.headers) }),
+                    ...(config.headers && (() => {
+                      try {
+                        return { headers: JSON.parse(config.headers) };
+                      } catch {
+                        return { headers: config.headers };
+                      }
+                    })()),
                     ...(config.body && { requestBody: config.body }),
                     assertion: config.expectedStatus 
                       ? `response.status == ${config.expectedStatus}` 
