@@ -21,7 +21,7 @@ const Sidebar = () => {
     { name: "Test Flows", icon: GitBranch, active: location.pathname === "/", href: "/" },
     { name: "UI Tests", icon: Monitor, active: location.pathname === "/ui-tests", href: "/ui-tests" },
     { name: "Executions", icon: Play, active: false, href: "#" },
-    { name: "Test Data", icon: Database, active: false, href: "#" },
+    { name: "Test Data", icon: Database, active: location.pathname === "/test-data", href: "/test-data" },
     { name: "Environments", icon: Shield, active: false, href: "#" },
     { name: "Reports", icon: BarChart3, active: false, href: "#" },
   ];
