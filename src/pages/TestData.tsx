@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,7 +146,16 @@ const TestData = () => {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-screen flex flex-col bg-background">
+      <TopBar 
+        viewMode="visual" 
+        onViewModeChange={() => {}}
+        hasUnsavedChanges={false}
+      />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Test Data Management</h1>
@@ -375,6 +386,9 @@ const TestData = () => {
           </CardContent>
         </Card>
       )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
