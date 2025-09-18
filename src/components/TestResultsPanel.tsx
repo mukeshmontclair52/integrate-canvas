@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   History, 
   Download, 
@@ -14,9 +15,11 @@ import {
   Monitor,
   Smartphone,
   Tablet,
-  X
+  X,
+  BarChart3
 } from "lucide-react";
 import { TestResult } from "./UITestStudio";
+import { PerformanceMetricsPanel } from "./PerformanceMetricsPanel";
 import { toast } from "sonner";
 
 interface TestResultsPanelProps {
@@ -162,7 +165,7 @@ export const TestResultsPanel = ({
       {/* View Screenshot Modal */}
       {viewModalResult && (
         <Dialog open={true} onOpenChange={() => setViewModalResult(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogContent className="max-w-6xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
@@ -175,13 +178,40 @@ export const TestResultsPanel = ({
                 <Badge variant="outline">{viewModalResult.device}</Badge>
                 <span>{formatDate(viewModalResult.timestamp)}</span>
               </div>
-              <div className="max-h-[60vh] overflow-auto">
-                <img 
-                  src={viewModalResult.screenshot} 
-                  alt={viewModalResult.name}
-                  className="w-full border rounded"
-                />
-              </div>
+              
+              <Tabs defaultValue="screenshot" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="screenshot">Screenshot</TabsTrigger>
+                  <TabsTrigger value="metrics" disabled={!viewModalResult.metrics}>
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Metrics
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="screenshot" className="space-y-4">
+                  <div className="max-h-[60vh] overflow-auto">
+                    <img 
+                      src={viewModalResult.screenshot} 
+                      alt={viewModalResult.name}
+                      className="w-full border rounded"
+                    />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="metrics" className="space-y-4">
+                  {viewModalResult.metrics ? (
+                    <div className="max-h-[60vh] overflow-auto">
+                      <PerformanceMetricsPanel metrics={viewModalResult.metrics} />
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-8">
+                      <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No performance metrics available for this test</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+              
               <div className="flex gap-2">
                 <Button onClick={() => handleDownload(viewModalResult)}>
                   <Download className="h-4 w-4 mr-2" />

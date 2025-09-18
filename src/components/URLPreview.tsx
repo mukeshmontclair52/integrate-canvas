@@ -4,10 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, Monitor, Smartphone, Tablet, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Camera, Monitor, Smartphone, Tablet, RefreshCw, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import { TestResult } from "./UITestStudio";
+import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
+import { PerformanceMetricsPanel } from "./PerformanceMetricsPanel";
 
 interface URLPreviewProps {
   onSaveTestResult: (result: TestResult) => void;
@@ -25,10 +28,12 @@ export const URLPreview = ({ onSaveTestResult }: URLPreviewProps) => {
   const [device, setDevice] = useState<keyof typeof deviceViews>("desktop");
   const [isLoading, setIsLoading] = useState(false);
   const [testName, setTestName] = useState("");
+  const [activeTab, setActiveTab] = useState<"preview" | "metrics">("preview");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { isMonitoring, metrics, startMonitoring } = usePerformanceMonitor();
 
-  const handleLoadUrl = () => {
+  const handleLoadUrl = async () => {
     if (!url) {
       toast.error("Please enter a URL");
       return;
@@ -37,11 +42,17 @@ export const URLPreview = ({ onSaveTestResult }: URLPreviewProps) => {
     setIsLoading(true);
     setCurrentUrl(url);
     
-    // Simulate loading time
-    setTimeout(() => {
+    try {
+      // Start performance monitoring
+      await startMonitoring(url);
+      toast.success("Application loaded successfully with performance metrics");
+      setActiveTab("metrics");
+    } catch (error) {
+      console.error("Error loading URL:", error);
+      toast.error("Failed to load application");
+    } finally {
       setIsLoading(false);
-      toast.success("Application loaded successfully");
-    }, 1000);
+    }
   };
 
   const handleScreenCapture = async () => {
@@ -71,7 +82,8 @@ export const URLPreview = ({ onSaveTestResult }: URLPreviewProps) => {
           timestamp: new Date(),
           device,
           screenshot,
-          name: testName
+          name: testName,
+          metrics: metrics || undefined
         };
 
         onSaveTestResult(testResult);
@@ -137,8 +149,8 @@ export const URLPreview = ({ onSaveTestResult }: URLPreviewProps) => {
               </Select>
             </div>
             <div className="flex flex-col justify-end">
-              <Button onClick={handleLoadUrl} disabled={isLoading}>
-                {isLoading ? (
+              <Button onClick={handleLoadUrl} disabled={isLoading || isMonitoring}>
+                {isLoading || isMonitoring ? (
                   <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
                   "Load"
@@ -170,42 +182,73 @@ export const URLPreview = ({ onSaveTestResult }: URLPreviewProps) => {
         </CardContent>
       </Card>
 
-      {/* URL Preview */}
+      {/* URL Preview and Metrics */}
       <div className="flex-1 flex flex-col">
-        <div className="flex items-center gap-2 mb-2">
-          <DeviceIcon className="h-4 w-4" />
-          <span className="text-sm text-muted-foreground">
-            {device.charAt(0).toUpperCase() + device.slice(1)} View
-            {device !== "desktop" && (
-              <span className="ml-2">({deviceConfig.width} × {deviceConfig.height})</span>
-            )}
-          </span>
-        </div>
-        
-        <div 
-          ref={containerRef}
-          className="flex-1 border border-border rounded-lg overflow-hidden bg-card flex items-center justify-center"
-          style={{
-            maxWidth: device === "desktop" ? "100%" : deviceConfig.width,
-            maxHeight: device === "desktop" ? "100%" : deviceConfig.height,
-            margin: device === "desktop" ? "0" : "0 auto"
-          }}
-        >
-          {currentUrl ? (
-            <iframe
-              ref={iframeRef}
-              src={currentUrl}
-              className="w-full h-full border-0"
-              title="Application Preview"
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-            />
-          ) : (
-            <div className="text-center text-muted-foreground p-8">
-              <Monitor className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Enter a URL and click "Load" to preview the application</p>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "preview" | "metrics")} className="flex-1 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <DeviceIcon className="h-4 w-4" />
+              <span className="text-sm text-muted-foreground">
+                {device.charAt(0).toUpperCase() + device.slice(1)} View
+                {device !== "desktop" && (
+                  <span className="ml-2">({deviceConfig.width} × {deviceConfig.height})</span>
+                )}
+              </span>
             </div>
-          )}
-        </div>
+            
+            <TabsList className="grid w-48 grid-cols-2">
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+              <TabsTrigger value="metrics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Metrics
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="preview" className="flex-1 flex flex-col mt-0">
+            <div 
+              ref={containerRef}
+              className="flex-1 border border-border rounded-lg overflow-hidden bg-card flex items-center justify-center"
+              style={{
+                maxWidth: device === "desktop" ? "100%" : deviceConfig.width,
+                maxHeight: device === "desktop" ? "100%" : deviceConfig.height,
+                margin: device === "desktop" ? "0" : "0 auto"
+              }}
+            >
+              {currentUrl ? (
+                <iframe
+                  ref={iframeRef}
+                  src={currentUrl}
+                  className="w-full h-full border-0"
+                  title="Application Preview"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                />
+              ) : (
+                <div className="text-center text-muted-foreground p-8">
+                  <Monitor className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Enter a URL and click "Load" to preview the application</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="metrics" className="flex-1 flex flex-col mt-0">
+            <div className="flex-1 border border-border rounded-lg overflow-hidden bg-card">
+              {metrics ? (
+                <div className="p-4 h-full overflow-auto">
+                  <PerformanceMetricsPanel metrics={metrics} />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <div className="text-center">
+                    <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Load a URL to see performance metrics</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

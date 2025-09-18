@@ -3,15 +3,9 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { URLPreview } from "./URLPreview";
 import { TestResultsPanel } from "./TestResultsPanel";
+import { EnhancedTestResult } from "@/types/performance";
 
-export interface TestResult {
-  id: string;
-  url: string;
-  timestamp: Date;
-  device: "desktop" | "mobile" | "tablet";
-  screenshot: string;
-  name: string;
-}
+export type TestResult = EnhancedTestResult;
 
 export const UITestStudio = () => {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
